@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from "react";
-import Cards from "./Cards";
-
+import React, { useState } from "react";
+import Column from "./Column";
+import { DndContext } from "@dnd-kit/core";
 
 function Board() {
   const [lists, setLists] = useState([
@@ -10,93 +10,55 @@ function Board() {
     { id: "designed", title: "Designed", cards: [] },
   ]);
 
-  const [newCardTitle, setNewCardTitle] = useState([]);
-  const [newCardDesc, setNewCardDesc] = useState([]);
-  const [isVisible, setIsVisible] = useState(true);
+  const handleDragEnd = (event) => {
+    const { active, over } = event;
 
-  const addCard = () => {
-    const newCard = {
-      id: Math.random().toString(36).substring(2, 9),
-      title: newCardTitle,
-      description: newCardDesc,
-    };
+    if (!over) return;
 
-    setLists((prevList) =>
-      prevList.map((list) =>
-        list.id === "backlog"
-          ? { ...list, cards: [...list.cards, newCard] }
-          : list
-      )
-    );
+    const activeId = active.id;
+    const overId = over.id;
 
-    setNewCardTitle(""); //başlığı temizle
-    setNewCardDesc(""); //açıklamayı temizle
-    setIsVisible(!isVisible); //formu kapat
-  };
+    if (activeId === overId) return;
 
-  useEffect(() => {
-    console.log("lists", lists);
-  }, [lists]);
+    let draggedCard;
+    let sourceListId;
+    let updatedLists = [...lists];
 
-  const handleClick = () => {
-    setIsVisible(!isVisible);
+    // 1. Kartı bul ve bulunduğu listeden çıkar
+    updatedLists = updatedLists.map((list) => {
+      const foundCard = list.cards.find((card) => card.id === activeId);
+      if (foundCard) {
+        draggedCard = foundCard;
+        sourceListId = list.id;
+        return {
+          ...list,
+          cards: list.cards.filter((card) => card.id !== activeId),
+        };
+      }
+      return list;
+    });
+
+    // 2. Kartı hedef listeye ekle
+    updatedLists = updatedLists.map((list) => {
+      if (list.id === overId && draggedCard) {
+        return {
+          ...list,
+          cards: [...list.cards, draggedCard],
+        };
+      }
+      return list;
+    });
+
+    setLists(updatedLists);
   };
 
   return (
-    <div className="board w-screen h-auto flex flex-row justify-center items-center gap-[40px] box-border ">
-      {lists.map((list) => (
-        <div className="list" key={list.id}>
-          <h1>{list.title}</h1>
-
-          {/* Kart Ekleme */}
-          {list.id === "backlog" && (
-            <div className="flex flex-col gap-8">
-              {/* Cardları bastırma */}
-               {list.cards.map((card) => (
-                <Cards key={card.id} id={card.id} title={card.title} desc={card.description} />
-              ))}
-
-              {/* Form */}
-              {isVisible === true && (
-                <div className="flex flex-col gap-[12px]">
-                  <div className="form flex flex-col justify-center h-auto border-[#00A88B] ">
-                    <input
-                      className="bg-[#00A88B] border-none rounded-[20px] focus:outline-none text-white text-elipsis overflow-hidden"
-                      type="text"
-                      placeholder="Title"
-                      value={newCardTitle}
-                      onChange={(e) => setNewCardTitle(e.target.value)}
-                    />
-                    <textarea
-                      className="border-none bg-[#00A88B] focus:outline-none text-white text-elipsis overflow-hidden"
-                      type="text"
-                      placeholder="Description"
-                      rows={3}
-                      value={newCardDesc}
-                      onChange={(e) => setNewCardDesc(e.target.value)}
-                    />
-                  </div>
-                  <button
-                    onClick={addCard}
-                    className="border border-[#00A88B] rounded-[20px] p-[8px] bg-[#00A88B] text-white w-full"
-                  >
-                    <p>Submit</p>
-                  </button>
-                </div>
-              )}
-              <button
-                className={`border border-[#00A88B] rounded-[20px] bg-[#00A88B] text-white ${
-                  isVisible ? "hidden" : "w-full"
-                }`}
-                onClick={handleClick}
-              >
-                {isVisible ? "Submit" : "Add New Card"}
-              </button>
-            </div>
-          )}
-        </div>
-      ))}
-    </div>
+    <DndContext
+      onDragEnd={handleDragEnd}
+      className="board w-screen h-auto flex flex-row justify-center items-center gap-[40px] box-border"
+    >
+      <Column lists={lists} setLists={setLists} />
+    </DndContext>
   );
 }
 
