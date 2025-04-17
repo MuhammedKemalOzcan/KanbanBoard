@@ -1,0 +1,41 @@
+version: '3.8'
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: mysql-kanban
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: kanban_db
+      MYSQL_USER: kemal
+      MYSQL_PASSWORD: kemal123
+    ports:
+      - "3306:3306"  # Veritabanı 3306 portundan erişilebilir
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - kanban-network
+
+  backend:
+    build:
+      context: ./server  # Backend konteyneri server klasöründen build edilecek
+      dockerfile: Dockerfile
+    depends_on:
+      - mysql  # mysql servisi önce başlatılacak
+    ports:
+      - "3000:3000"  # NestJS backend 3000 portu üzerinden çalışacak
+    environment:
+      DATABASE_HOST: mysql  # Docker ağı üzerinde 'mysql' servisine bağlanacak
+      DATABASE_PORT: 3306
+      DATABASE_USERNAME: kemal
+      DATABASE_PASSWORD: kemal123
+      DATABASE_NAME: kanban_db
+    networks:
+      - kanban-network
+
+networks:
+  kanban-network:
+    driver: bridge
+
+volumes:
+  mysql_data:
