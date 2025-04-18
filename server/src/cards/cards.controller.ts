@@ -1,7 +1,17 @@
-import { Body, Controller, Delete, Get, Param, Post, Put } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Put,
+} from '@nestjs/common';
 import { CardsService } from './cards.service';
 import { CreateCardDto } from './create-card.dto';
 import { Card } from './cards.entity';
+import { UpdateCardDto } from './update-card.dto';
 
 @Controller('cards')
 export class CardsController {
@@ -22,15 +32,24 @@ export class CardsController {
     return this.cardService.findOne(id);
   }
 
-  @Put(":id")
-  update(@Param("id") id:number,@Body() updateCardDto: CreateCardDto): Promise<Card | null> {
-    return this.cardService.update(id,updateCardDto);
+  @Put(':id')
+  update(
+    @Param('id') id: number,
+    @Body() updateCardDto: CreateCardDto,
+  ): Promise<Card | null> {
+    return this.cardService.update(id, updateCardDto);
+  }
+
+  @Patch(':id')
+  async updateCard(
+    @Param('id') id: number,
+    @Body() updateCardDto: UpdateCardDto,
+  ) {
+    return this.cardService.updateCard(id, updateCardDto);
   }
 
   @Delete(':id')
   remove(@Param('id') id: number): Promise<void> {
     return this.cardService.remove(id);
   }
-
-
 }

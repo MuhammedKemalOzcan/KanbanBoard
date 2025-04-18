@@ -14,4 +14,7 @@ export class Card {
 
   @ManyToOne(() => Board, (board) => board.cards, { onDelete: 'CASCADE' })
   board: Board;
+
+  @Column()
+  boardId: number;
 }

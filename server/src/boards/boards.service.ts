@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Board } from './boards.entity';
 import { Repository } from 'typeorm';
 import { CreateBoardDto } from './create-board.dto';
+import { UpdateCardDto } from 'src/cards/update-card.dto';
 
 //Başka sınıflara inject edilebilecek
 @Injectable()
@@ -20,6 +21,7 @@ export class BoardsService {
   async findAll(): Promise<Board[]> {
     return await this.boardRepository.find({ relations: ['cards'] }); //board ile ilişkili olan kartların da gelemsini sağladık.
   }
+
 
   async remove(id: number) {
     await this.boardRepository.delete(id);
