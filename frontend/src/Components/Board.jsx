@@ -1,14 +1,24 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Column from "./Column";
 import { DndContext } from "@dnd-kit/core";
+import axios from "axios";
 
 function Board() {
-  const [lists, setLists] = useState([
-    { id: "backlog", title: "Backlog", cards: [] },
-    { id: "todo", title: "To do", cards: [] },
-    { id: "in-progress", title: "In Progress", cards: [] },
-    { id: "designed", title: "Designed", cards: [] },
-  ]);
+  const [boards, setBoards] = useState([]);
+
+  const fetchBoards = async () => {
+    try {
+      const response = await axios.get("http://localhost:3000/boards");
+      setBoards(response.data);
+      console.log("Gelen veri:", response.data);
+    } catch (error) {
+      console.error("Hata:",  error);
+    }
+  };
+
+  useEffect(() => {
+    fetchBoards();
+  }, []);
 
   const handleDragEnd = (event) => {
     const { active, over } = event;
@@ -21,35 +31,35 @@ function Board() {
     if (activeId === overId) return;
 
     let draggedCard;
-    let sourceListId;
-    let updatedLists = [...lists];
+    let sourceBoardId;
+    let updatedBoards = [...boards];
 
     // 1. Kartı bul ve bulunduğu listeden çıkar
-    updatedLists = updatedLists.map((list) => {
-      const foundCard = list.cards.find((card) => card.id === activeId);
+    updatedBoards = updatedBoards.map((board) => {
+      const foundCard = board.cards.find((card) => card.id === activeId);
       if (foundCard) {
         draggedCard = foundCard;
-        sourceListId = list.id;
+        sourceBoardId = board.id;
         return {
-          ...list,
-          cards: list.cards.filter((card) => card.id !== activeId),
+          ...board,
+          cards: board.cards.filter((card) => card.id !== activeId),
         };
       }
-      return list;
+      return board;
     });
 
     // 2. Kartı hedef listeye ekle
-    updatedLists = updatedLists.map((list) => {
-      if (list.id === overId && draggedCard) {
+    updatedBoards = updatedBoards.map((board) => {
+      if (updatedBoards.id === overId && draggedCard) {
         return {
-          ...list,
-          cards: [...list.cards, draggedCard],
+          ...updatedBoards,
+          cards: [...updatedBoards.cards, draggedCard],
         };
       }
-      return list;
+      return updatedBoards;
     });
 
-    setLists(updatedLists);
+    setBoards(updatedBoards);
   };
 
   return (
@@ -57,7 +67,7 @@ function Board() {
       onDragEnd={handleDragEnd}
       className="board w-screen h-auto flex flex-row justify-center items-center gap-[40px] box-border"
     >
-      <Column lists={lists} setLists={setLists} />
+      <Column boards={boards} setBoards={setBoards} />
     </DndContext>
   );
 }
