@@ -72,9 +72,6 @@ function Column({ boards, setBoards }) {
     );
     const toBoard = boards.find((board) => board.id === overId); //eşleşen board bulunuyor
 
-    console.log(fromBoard);
-    console.log(toBoard);
-    console.log(activeId);
 
     if (!fromBoard || !toBoard || fromBoard.id === toBoard.id) return; //aynı yerine bırakıldıysa veya herhangi bir board'a bırakılmadıysa birşey yapma
 
@@ -151,7 +148,7 @@ function Column({ boards, setBoards }) {
             <h1>{board.title}</h1>
 
             {/* Cardları bastırma */}
-            <div>
+            <div className="flex flex-col gap-8">
               {board.cards.map((card) => (
                 <Cards
                   key={card.id}
