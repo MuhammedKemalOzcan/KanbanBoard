@@ -17,8 +17,18 @@ function Column({ boards, setBoards }) {
   const [newCardTitle, setNewCardTitle] = useState("");
   const [newCardDesc, setNewCardDesc] = useState("");
   const [isVisible, setIsVisible] = useState(false);
+  const [error, setError] = useState("");
+  const [descError, setDescError] = useState("");
 
   const addCard = async () => {
+    if (!newCardTitle.trim()) {
+      setError("Başlık boş bırakılamaz! ");
+      return;
+    }
+    if (!newCardDesc.trim()) {
+      setDescError("Açıklama boş bırakılamaz! ");
+      return;
+    }
     try {
       const response = await axios.post("http://localhost:3000/cards", {
         title: newCardTitle,
@@ -40,12 +50,15 @@ function Column({ boards, setBoards }) {
     setNewCardTitle(""); //başlığı temizle
     setNewCardDesc(""); //açıklamayı temizle
     setIsVisible(!isVisible); //formu kapat
+    setError("");
+    setDescError("");
   };
 
   const handleClick = () => {
     setIsVisible(!isVisible);
   };
 
+  //Kaydırma işlemi bittiğinde yapılacak işlemler.
   const handleDragEnd = async (event) => {
     const { active, over } = event;
     if (!over) return;
@@ -98,11 +111,43 @@ function Column({ boards, setBoards }) {
     }
   };
 
+  const handleDelete = (boardId, cardId) => {
+    setBoards((prevBoards) =>
+      prevBoards.map((board) => {
+        if (board.id === boardId) {
+          return {
+            ...board,
+            cards: board.cards.filter((card) => card.id !== cardId), // Kartı sil
+          };
+        }
+        return board;
+      })
+    );
+  };
+
+  const handleEdit = (boardId, cardId, newTitle, newDesc) => {
+    setBoards((prevBoards) =>
+      prevBoards.map((board) => {
+        if (board.id === boardId) {
+          return {
+            ...board,
+            cards: board.cards.map((card) =>
+              card.id === cardId
+                ? { ...card, title: newTitle, description: newDesc }
+                : card
+            ),
+          };
+        }
+        return board;
+      })
+    );
+  };
+
   return (
     <DndContext onDragEnd={handleDragEnd}>
       <div className="board w-screen h-auto flex flex-row justify-center items-center gap-[40px] box-border">
         {boards.map((board) => (
-          <DroppableBoard className="list" key={board.id} board={board}>
+          <DroppableBoard className="list " key={board.id} board={board}>
             <h1>{board.title}</h1>
 
             {/* Cardları bastırma */}
@@ -113,17 +158,24 @@ function Column({ boards, setBoards }) {
                   id={card.id}
                   title={card.title}
                   desc={card.description}
+                  onDelete={() => handleDelete(board.id, card.id)}
+                  onUpdate={(newTitle, newDesc) =>
+                    handleEdit(board.id, card.id, newTitle, newDesc)
+                  }
                 />
               ))}
             </div>
 
             {/* Kart Ekleme */}
             {board.title === "Backlog" && (
-              <div className="flex flex-col gap-8">
+              <div className="flex flex-col gap-20">
                 {/* Form */}
                 {isVisible === true && (
                   <div className="flex flex-col gap-[12px]">
                     <div className="form flex flex-col justify-center h-auto border-[#00A88B] ">
+                      {error && (
+                        <div className="text-red-500 text-sm mt-2">{error}</div>
+                      )}
                       <input
                         className="bg-[#00A88B] border-none rounded-[20px] focus:outline-none text-white text-elipsis overflow-hidden"
                         type="text"
@@ -131,6 +183,11 @@ function Column({ boards, setBoards }) {
                         value={newCardTitle}
                         onChange={(e) => setNewCardTitle(e.target.value)}
                       />
+                      {descError && (
+                        <div className="text-red-500 text-sm mt-2">
+                          {descError}
+                        </div>
+                      )}
                       <textarea
                         className="border-none bg-[#00A88B] focus:outline-none text-white text-elipsis overflow-hidden"
                         type="text"
