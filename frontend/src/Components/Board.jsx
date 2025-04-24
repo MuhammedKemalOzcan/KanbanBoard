@@ -10,7 +10,6 @@ function Board() {
     try {
       const response = await axios.get("http://localhost:3000/boards");
       setBoards(response.data);
-      console.log("Board verileri:", response.data);
     } catch (error) {
       console.error("Hata:", error);
     }
@@ -20,7 +19,6 @@ function Board() {
     try {
       const response = await axios.get("http://localhost:3000/cards");
       setCards(response.data);
-      console.log("Card verileri:", response.data);
     } catch (error) {
       console.error("Hata:", error);
     }
@@ -30,10 +28,14 @@ function Board() {
     fetchBoards();
     fetchCards();
   }, []);
+
   return (
-    <div className="board w-screen h-auto flex flex-row justify-center items-center gap-[40px] box-border">
-      <Column boards={boards} setBoards={setBoards} cards={cards} setCards={setCards} />
-    </div>
+    <Column
+      boards={boards}
+      setBoards={setBoards}
+      cards={cards}
+      setCards={setCards}
+    />
   );
 }
 

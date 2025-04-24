@@ -1,24 +1,131 @@
-import { DndContext, useDroppable } from "@dnd-kit/core";
+import {
+  DndContext,
+  DragOverlay,
+  MouseSensor,
+  TouchSensor,
+  closestCenter,
+  closestCorners,
+  pointerWithin,
+  useDroppable,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
 import React, { useEffect, useState } from "react";
 import Cards from "./Cards";
 import axios from "axios";
+import DroppableBoard from "./DroppableBoard";
 
-function DroppableBoard({ board, children }) {
-  const { setNodeRef } = useDroppable({ id: board.id });
-
-  return (
-    <div ref={setNodeRef} className="list w-[250px] p-4 border rounded-md">
-      {children}
-    </div>
-  );
-}
-
-function Column({ boards, setBoards }) {
+function Column({ boards, setBoards, cards }) {
   const [newCardTitle, setNewCardTitle] = useState("");
   const [newCardDesc, setNewCardDesc] = useState("");
   const [isVisible, setIsVisible] = useState(false);
   const [error, setError] = useState("");
   const [descError, setDescError] = useState("");
+  const [activeId, setActiveId] = useState(null);
+
+  const sensors = useSensors(
+    useSensor(MouseSensor, {
+      activationConstraint: {
+        distance: 5,
+      },
+    }),
+    useSensor(TouchSensor)
+  );
+
+  const handleDragStart = (event) => {
+    setActiveId(event.active.id);
+  };
+
+  const handleDragEnd = async (event) => {
+    const { active, over } = event;
+
+    if (!over) {
+      console.warn("Hedef konum bulunamadı");
+      return;
+    }
+
+    // 1. Optimistic update için boards state'ini kopyala
+    const updatedBoards = boards.map((board) => ({
+      ...board,
+      cards: [...board.cards], // Derin kopya
+    }));
+
+    // 2. Taşınan kartı ve kaynak board'ı bul
+    let sourceBoard, sourceCardIndex, cardToMove;
+    for (const board of updatedBoards) {
+      const foundIndex = board.cards.findIndex((card) => card.id === active.id);
+      if (foundIndex !== -1) {
+        sourceBoard = board;
+        sourceCardIndex = foundIndex;
+        cardToMove = { ...board.cards[foundIndex] }; // Kartın kopyasını al
+        break;
+      }
+    }
+
+    if (!sourceBoard || sourceCardIndex === undefined || !cardToMove) {
+      console.error(`Kaynak kart bulunamadı: ${active.id}`);
+      return;
+    }
+
+    // 3. Hedef konumu belirle
+    let targetBoardId, newPosition;
+
+    if (over.data.current?.type === "card") {
+      // Kartın üzerine bırakıldı
+      for (const board of updatedBoards) {
+        const overCardIndex = board.cards.findIndex(
+          (card) => card.id === over.id
+        );
+        if (overCardIndex !== -1) {
+          sourceBoard.cards.splice(sourceCardIndex, 1);
+          newPosition =
+            overCardIndex +
+            (sourceBoard.id === board.id && sourceCardIndex < overCardIndex
+              ? 0
+              : 1);
+          board.cards.splice(newPosition, 0, cardToMove);
+          targetBoardId = board.id;
+          break;
+        }
+      }
+    } else {
+      // Board'a bırakıldı
+      const targetBoard = updatedBoards.find((board) => board.id === over.id);
+      if (targetBoard) {
+        sourceBoard.cards.splice(sourceCardIndex, 1);
+        newPosition = targetBoard.cards.length;
+        targetBoard.cards.push(cardToMove);
+        targetBoardId = targetBoard.id;
+      }
+    }
+
+    if (targetBoardId === undefined || newPosition === undefined) return;
+
+    // 4. Optimistic update (UI'ı anında güncelle)
+    setBoards(updatedBoards);
+
+    // 5. Backend'e güncelleme gönder
+    try {
+      const response = await axios.patch(
+        `http://localhost:3000/cards/${active.id}`,
+        {
+          boardId: targetBoardId,
+          position: newPosition,
+        }
+      );
+
+      console.log("Backend güncellendi:", response.data);
+    } catch (err) {
+      console.error(
+        "Backend güncelleme hatası:",
+        err.response?.data || err.message
+      );
+    }
+  };
 
   const addCard = async () => {
     if (!newCardTitle.trim()) {
@@ -58,56 +165,6 @@ function Column({ boards, setBoards }) {
     setIsVisible(!isVisible);
   };
 
-  //Kaydırma işlemi bittiğinde yapılacak işlemler.
-  const handleDragEnd = async (event) => {
-    const { active, over } = event;
-    if (!over) return;
-
-    const activeId = active.id; //sürüklenen kartın id'si
-    const overId = over.id; //bırakılan alanın id'si
-
-    // Eğer board değiştiyse
-    const fromBoard = boards.find(
-      (board) => board.cards.some((card) => card.id === activeId) //activeId ile taşınan kartı buluyor eğer eşleşirse hangi boarddan taşıdığımızı buluyoruz.
-    );
-    const toBoard = boards.find((board) => board.id === overId); //eşleşen board bulunuyor
-
-
-    if (!fromBoard || !toBoard || fromBoard.id === toBoard.id) return; //aynı yerine bırakıldıysa veya herhangi bir board'a bırakılmadıysa birşey yapma
-
-    //fromBoard(kartın çıkartıldığı board) içerisinde activeId ile aynı id'ye sahip olan yani taşınmakta olan kart bulunuyor.
-    const cardToMove = fromBoard.cards.find((card) => card.id === activeId);
-    if (!cardToMove) return;
-
-    //fromBoard'dan card çıkartılıp toBoard'a ekleniyor.
-    const updatedBoards = boards.map((board) => {
-      if (board.id === fromBoard.id) {
-        return {
-          ...board,
-          cards: board.cards.filter((card) => card.id !== activeId),
-        };
-      }
-      if (board.id === toBoard.id) {
-        return {
-          ...board,
-          cards: [...board.cards, cardToMove],
-        };
-      }
-      return board;
-    });
-
-    setBoards(updatedBoards);
-
-    //board set edildikten sonra boardId'si taşındığı boardId'si ile değiştirilerek taşınma işlemi tamamlanıyor.
-    try {
-      await axios.patch(`http://localhost:3000/cards/${activeId}`, {
-        boardId: toBoard.id,
-      });
-    } catch (err) {
-      console.error("DB güncellenemedi:", err);
-    }
-  };
-
   const handleDelete = (boardId, cardId) => {
     setBoards((prevBoards) =>
       prevBoards.map((board) => {
@@ -139,16 +196,30 @@ function Column({ boards, setBoards }) {
       })
     );
   };
-
   return (
-    <DndContext onDragEnd={handleDragEnd}>
-      <div className="board w-screen h-auto flex flex-row justify-center items-center gap-[40px] box-border">
+    <DndContext
+      collisionDetection={closestCenter}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+      sensors={sensors}
+    >
+      <div
+        className="board w-screen h-auto flex flex-row justify-center items-center gap-[40px] 
+      box-border md:flex-col max-sm:flex-col xl:flex-row"
+      >
         {boards.map((board) => (
-          <DroppableBoard className="list " key={board.id} board={board}>
+          <DroppableBoard
+            className="w-[17.5%] h-auto p-6 bg-[#262626] border border-[#262626] rounded-4 flex flex-col
+            box-border gap-6 min-h-[224px]  "
+            key={board.id}
+            id={board.id}
+            board={board}
+          >
             <h1>{board.title}</h1>
-
-            {/* Cardları bastırma */}
-            <div className="flex flex-col gap-8">
+            <SortableContext
+              items={board.cards.map((card) => card.id)}
+              strategy={verticalListSortingStrategy}
+            >
               {board.cards.map((card) => (
                 <Cards
                   key={card.id}
@@ -161,11 +232,10 @@ function Column({ boards, setBoards }) {
                   }
                 />
               ))}
-            </div>
-
+            </SortableContext>
             {/* Kart Ekleme */}
             {board.title === "Backlog" && (
-              <div className="flex flex-col gap-20">
+              <div className="flex flex-col  gap-20">
                 {/* Form */}
                 {isVisible === true && (
                   <div className="flex flex-col gap-[12px]">
@@ -203,7 +273,7 @@ function Column({ boards, setBoards }) {
                   </div>
                 )}
                 <button
-                  className={`border border-[#00A88B] rounded-[10px] bg-[#00A88B] text-white ${
+                  className={`flex justify-center items-end  border border-[#00A88B] rounded-[10px] bg-[#00A88B] text-white ${
                     isVisible ? "hidden" : "w-full"
                   }`}
                   onClick={handleClick}
@@ -215,6 +285,13 @@ function Column({ boards, setBoards }) {
           </DroppableBoard>
         ))}
       </div>
+      <DragOverlay>
+        {activeId ? (
+          <div className="bg-[#00A88B] text-white rounded-[8px] p-[8px] mb-[16px] shadow-lg">
+            {cards.find((card) => card.id === activeId)?.title}
+          </div>
+        ) : null}
+      </DragOverlay>
     </DndContext>
   );
 }

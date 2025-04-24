@@ -42,20 +42,21 @@ export class CardsService {
     return this.cardRepo.findOneBy({ id });
   }
 
-  async updateCard(
-    id: number,
-    updateCardDto: UpdateCardDto,
-  ): Promise<Card | null> {
-    const card = await this.cardRepo.findOne({ where: { id } });
+  async updateCard(id: number, updateCardDto: UpdateCardDto): Promise<Card> {
+    // 1. Kartı doğrudan güncelle (save() yerine update kullanarak)
+    await this.cardRepo.update(id, updateCardDto);
 
-    if (!card) {
-      throw new NotFoundException('Card not found');
+    // 2. Güncellenmiş kartı döndür
+    const updatedCard = await this.cardRepo.findOne({
+      where: { id },
+      relations: ['board'], // İlişkili verileri de getirmek isterseniz
+    });
+
+    if (!updatedCard) {
+      throw new NotFoundException('Card not found after update');
     }
 
-    Object.assign(card, updateCardDto);
-
-    return this.cardRepo.save(card);
-
+    return updatedCard;
   }
 
   async update(id: number, updateCardDto: CreateCardDto) {

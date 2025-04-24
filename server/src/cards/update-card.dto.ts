@@ -3,8 +3,8 @@ import { IsNumber, IsOptional, IsString } from 'class-validator';
 
 export class UpdateCardDto {
   @IsOptional()
-  @IsString()
-  boardId?: string;
+  @IsNumber()
+  boardId?: number;
 
   @IsOptional()
   @IsString()
@@ -16,5 +16,5 @@ export class UpdateCardDto {
 
   @IsOptional()
   @IsNumber()
-  BoardId?: string;
+  position?: number;
 }

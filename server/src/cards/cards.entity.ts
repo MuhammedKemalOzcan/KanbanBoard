@@ -17,4 +17,7 @@ export class Card {
 
   @Column()
   boardId: number;
+
+  @Column()
+  position: number;
 }
