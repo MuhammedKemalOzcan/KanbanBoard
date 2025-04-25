@@ -127,6 +127,15 @@ function Column({ boards, setBoards, cards }) {
     }
   };
 
+  const fetchBoards = async () => {
+    try {
+      const response = await axios.get("http://localhost:3000/boards");
+      setBoards(response.data);
+    } catch (error) {
+      console.error("Hata:", error);
+    }
+  };
+
   const addCard = async () => {
     if (!newCardTitle.trim()) {
       setError("Başlık boş bırakılamaz! ");
@@ -203,84 +212,81 @@ function Column({ boards, setBoards, cards }) {
       onDragEnd={handleDragEnd}
       sensors={sensors}
     >
-      <div
-        className="board w-screen h-auto flex flex-row justify-center items-center gap-[40px] 
-      box-border md:flex-col max-sm:flex-col xl:flex-row"
-      >
+      <div className="board">
         {boards.map((board) => (
-          <DroppableBoard
-            className="w-[17.5%] h-auto p-6 bg-[#262626] border border-[#262626] rounded-4 flex flex-col
-            box-border gap-6 min-h-[224px]  "
-            key={board.id}
-            id={board.id}
-            board={board}
-          >
-            <h1>{board.title}</h1>
-            <SortableContext
-              items={board.cards.map((card) => card.id)}
-              strategy={verticalListSortingStrategy}
-            >
-              {board.cards.map((card) => (
-                <Cards
-                  key={card.id}
-                  id={card.id}
-                  title={card.title}
-                  desc={card.description}
-                  onDelete={() => handleDelete(board.id, card.id)}
-                  onUpdate={(newTitle, newDesc) =>
-                    handleEdit(board.id, card.id, newTitle, newDesc)
-                  }
-                />
-              ))}
-            </SortableContext>
-            {/* Kart Ekleme */}
-            {board.title === "Backlog" && (
-              <div className="flex flex-col  gap-20">
-                {/* Form */}
-                {isVisible === true && (
-                  <div className="flex flex-col gap-[12px]">
-                    <div className="form flex flex-col justify-center h-auto border-[#00A88B] ">
-                      {error && (
-                        <div className="text-red-500 text-sm mt-2">{error}</div>
-                      )}
-                      <input
-                        className="bg-[#00A88B] border-none rounded-[20px] focus:outline-none text-white text-elipsis overflow-hidden"
-                        type="text"
-                        placeholder="Title"
-                        value={newCardTitle}
-                        onChange={(e) => setNewCardTitle(e.target.value)}
-                      />
-                      {descError && (
-                        <div className="text-red-500 text-sm mt-2">
-                          {descError}
-                        </div>
-                      )}
-                      <textarea
-                        className="border-none bg-[#00A88B] focus:outline-none text-white text-elipsis overflow-hidden"
-                        type="text"
-                        placeholder="Description"
-                        rows={3}
-                        value={newCardDesc}
-                        onChange={(e) => setNewCardDesc(e.target.value)}
-                      />
+          <DroppableBoard key={board.id} id={board.id} board={board}>
+            <div className="bg-[#262626] flex flex-col p-4 pb-2 border-[#262626] border rounded-[16px] gap-[16px] min-h-[224px]">
+              <h1>{board.title}</h1>
+              <SortableContext
+                items={board.cards.map((card) => card.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                {board.cards.map((card) => (
+                  <Cards
+                    key={card.id}
+                    id={card.id}
+                    title={card.title}
+                    desc={card.description}
+                    onDelete={() => handleDelete(board.id, card.id)}
+                    onUpdate={(newTitle, newDesc) =>
+                      handleEdit(board.id, card.id, newTitle, newDesc)
+                    }
+                  />
+                ))}
+              </SortableContext>
+              {/* Kart Ekleme */}
+              {board.title === "Backlog" && (
+                <div className="flex flex-col">
+                  {/* Form */}
+                  {isVisible === true && (
+                    <div className="flex flex-col gap-[12px]">
+                      <div className="form flex flex-col justify-center h-auto border-[#00A88B] ">
+                        {error && (
+                          <div className="text-red-500 text-sm mt-2">
+                            {error}
+                          </div>
+                        )}
+                        <input
+                          className="bg-[#00A88B] border-none rounded-[20px] focus:outline-none text-white text-elipsis overflow-hidden"
+                          type="text"
+                          placeholder="Title"
+                          value={newCardTitle}
+                          onChange={(e) => setNewCardTitle(e.target.value)}
+                        />
+                        {descError && (
+                          <div className="text-red-500 text-sm mt-2">
+                            {descError}
+                          </div>
+                        )}
+                        <textarea
+                          className="border-none bg-[#00A88B] focus:outline-none text-white text-elipsis overflow-hidden"
+                          type="text"
+                          placeholder="Description"
+                          rows={3}
+                          value={newCardDesc}
+                          onChange={(e) => setNewCardDesc(e.target.value)}
+                        />
+                      </div>
+                      <button
+                        onClick={addCard}
+                        className="button flex justify-center border border-[#00A88B] rounded-[10px] bg-[#00A88B] p-0.5 text-white"
+                      >
+                        <p>Submit</p>
+                      </button>
                     </div>
-                    <button
-                      onClick={addCard}
-                      className="border border-[#00A88B] rounded-[20px] p-[8px] bg-[#00A88B] text-white w-full"
-                    >
-                      <p>Submit</p>
-                    </button>
-                  </div>
-                )}
-                <button
-                  className={`flex justify-center items-end  border border-[#00A88B] rounded-[10px] bg-[#00A88B] text-white ${
-                    isVisible ? "hidden" : "w-full"
-                  }`}
-                  onClick={handleClick}
-                >
-                  {isVisible ? "Submit" : "Add New Card"}
-                </button>
-              </div>
+                  )}
+                </div>
+              )}
+            </div>
+            {board.title === "Backlog" && (
+              <button
+                className={`items-end border border-[#00A88B] rounded-[16px] bg-[#00A88B] p-1 text-white ${
+                  isVisible ? "hidden" : "w-full"
+                }`}
+                onClick={handleClick}
+              >
+                {isVisible ? "Submit" : "Add New Card"}
+              </button>
             )}
           </DroppableBoard>
         ))}
