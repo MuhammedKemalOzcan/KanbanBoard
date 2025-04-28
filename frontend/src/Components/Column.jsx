@@ -127,14 +127,16 @@ function Column({ boards, setBoards, cards }) {
     }
   };
 
-  const fetchBoards = async () => {
-    try {
-      const response = await axios.get("http://localhost:3000/boards");
-      setBoards(response.data);
-    } catch (error) {
-      console.error("Hata:", error);
-    }
-  };
+  // const fetchBoards = async () => {
+  //   try {
+  //     const response = await axios.get("http://localhost:3000/boards");
+  //     setBoards(response.data);
+  //   } catch (error) {
+  //     console.error("Hata:", error);
+  //   }
+  // };
+
+  console.log(boards);
 
   const addCard = async () => {
     if (!newCardTitle.trim()) {
@@ -213,10 +215,10 @@ function Column({ boards, setBoards, cards }) {
       sensors={sensors}
     >
       <div className="board">
-        {boards.map((board) => (
+        {boards.lists?.map((board) => (
           <DroppableBoard key={board.id} id={board.id} board={board}>
             <div className="bg-[#262626] flex flex-col p-4 pb-2 border-[#262626] border rounded-[16px] gap-[16px] min-h-[224px]">
-              <h1>{board.title}</h1>
+              <h1>{board.name}</h1>
               <SortableContext
                 items={board.cards.map((card) => card.id)}
                 strategy={verticalListSortingStrategy}
@@ -235,7 +237,8 @@ function Column({ boards, setBoards, cards }) {
                 ))}
               </SortableContext>
               {/* Kart Ekleme */}
-              {board.title === "Backlog" && (
+              {console.log(board.name)}
+              {board.name === "Backlog" && (
                 <div className="flex flex-col">
                   {/* Form */}
                   {isVisible === true && (

@@ -1,16 +1,19 @@
-import { useEffect, useState } from "react";
-import "./App.css";
+// src/App.jsx
+import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import Board from "./Components/Board";
-import axios from "axios";
+import CreateBoard from "./Components/CreateBoard";
+import "./App.css";
 
 function App() {
-
-
-
   return (
-    <div className="flex flex-col gap-4">
-      <Board />
-    </div>
+    <Router>
+      <div className="flex flex-col gap-4">
+        <Routes>
+          <Route path="/" element={<CreateBoard />} />
+          <Route path="/:id" element={<Board />} />
+        </Routes>
+      </div>
+    </Router>
   );
 }
 

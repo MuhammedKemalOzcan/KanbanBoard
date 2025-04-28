@@ -1,14 +1,13 @@
 import { Module } from '@nestjs/common';
-import { CardsService } from './cards.service';
-import { CardsController } from './cards.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Card } from './cards.entity';
-import { BoardsModule } from 'src/boards/boards.module';
-import { Board } from 'src/boards/boards.entity';
+import { List } from 'src/lists/list.entity';
+import { CardService } from './cards.service';
+import { CardController } from './cards.controller';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Card, Board]), BoardsModule],
-  providers: [CardsService],
-  controllers: [CardsController],
+  imports: [TypeOrmModule.forFeature([Card, List])],
+  providers: [CardService],
+  controllers: [CardController],
 })
-export class CardsModule {}
+export class CardModule {}

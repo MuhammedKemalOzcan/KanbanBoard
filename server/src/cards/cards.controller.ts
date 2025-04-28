@@ -1,55 +1,29 @@
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  Param,
-  Patch,
-  Post,
-  Put,
-} from '@nestjs/common';
-import { CardsService } from './cards.service';
-import { CreateCardDto } from './create-card.dto';
-import { Card } from './cards.entity';
-import { UpdateCardDto } from './update-card.dto';
+import { Controller, Post, Get, Patch, Body, Param } from '@nestjs/common';
+import { CardService } from './cards.service';
 
 @Controller('cards')
-export class CardsController {
-  constructor(private readonly cardService: CardsService) {}
+export class CardController {
+  constructor(private readonly cardService: CardService) {}
 
-  @Post()
-  create(@Body() createCardDto: CreateCardDto): Promise<Card> {
-    return this.cardService.create(createCardDto);
-  }
-
-  @Get()
-  findAll(): Promise<Card[]> {
-    return this.cardService.findAll();
-  }
-
-  @Get(':id')
-  findOne(@Param('id') id: number): Promise<Card | null> {
-    return this.cardService.findOne(id);
-  }
-
-  @Put(':id')
-  update(
-    @Param('id') id: number,
-    @Body() updateCardDto: CreateCardDto,
-  ): Promise<Card | null> {
-    return this.cardService.update(id, updateCardDto);
-  }
-
-  @Patch(':id')
-  async updateCard(
-    @Param('id') id: number,
-    @Body() updateCardDto: UpdateCardDto,
+  @Post(':listId')
+  async createCard(
+    @Param('listId') listId: string,
+    @Body('title') title: string,
+    @Body('description') description?: string,
   ) {
-    return this.cardService.updateCard(id, updateCardDto);
+    return this.cardService.createCard(listId, title, description);
   }
 
-  @Delete(':id')
-  remove(@Param('id') id: number): Promise<void> {
-    return this.cardService.remove(id);
+  @Get(':listId')
+  async getCards(@Param('listId') listId: string) {
+    return this.cardService.getCardsByList(listId);
+  }
+
+  @Patch('move/:cardId')
+  async moveCard(
+    @Param('cardId') cardId: string,
+    @Body('targetListId') targetListId: string,
+  ) {
+    return this.cardService.moveCard(cardId, targetListId);
   }
 }

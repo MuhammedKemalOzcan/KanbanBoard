@@ -1,23 +1,17 @@
-import { Body, Controller, Delete, Get, Param, Post } from '@nestjs/common';
-import { BoardsService } from './boards.service';
-import { CreateBoardDto } from './create-board.dto';
+import { Controller, Post, Get, Param, Body } from '@nestjs/common';
+import { BoardService } from './boards.service';
 
 @Controller('boards')
-export class BoardsController {
-  constructor(private readonly boardsService: BoardsService) {}
+export class BoardController {
+  constructor(private readonly boardService: BoardService) {}
 
   @Post()
-  create(@Body() createBoardDto: CreateBoardDto) {
-    return this.boardsService.create(createBoardDto);
+  async createBoard(@Body('name') name: string) {
+    return this.boardService.createBoard(name);
   }
 
-  @Get()
-  findAll() {
-    return this.boardsService.findAll();
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: number) {
-    return this.boardsService.remove(id);
+  @Get(':id')
+  async getBoard(@Param('id') id: string) {
+    return this.boardService.getBoardById(id);
   }
 }

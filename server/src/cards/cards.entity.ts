@@ -1,23 +1,17 @@
-import { Board } from 'src/boards/boards.entity';
-import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from 'typeorm';
+import { List } from 'src/lists/list.entity'; 
 
 @Entity()
 export class Card {
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
   @Column()
   title: string;
 
-  @Column()
+  @Column({ nullable: true })
   description: string;
 
-  @ManyToOne(() => Board, (board) => board.cards, { onDelete: 'CASCADE' })
-  board: Board;
-
-  @Column()
-  boardId: number;
-
-  @Column({ default: 0 })
-  position: number;
+  @ManyToOne(() => List, (list) => list.cards, { onDelete: 'CASCADE' })
+  list: List;
 }

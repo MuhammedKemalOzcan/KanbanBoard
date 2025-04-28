@@ -1,29 +1,59 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Board } from './boards.entity';
 import { Repository } from 'typeorm';
-import { CreateBoardDto } from './create-board.dto';
-import { UpdateCardDto } from 'src/cards/update-card.dto';
+import { Board } from './boards.entity';
+import { List } from 'src/lists/list.entity';
 
-//Başka sınıflara inject edilebilecek
 @Injectable()
-export class BoardsService {
+export class BoardService {
   constructor(
     @InjectRepository(Board)
     private readonly boardRepository: Repository<Board>,
+    @InjectRepository(List)
+    private readonly listRepository: Repository<List>,
   ) {}
 
-  async create(createBoardDto: CreateBoardDto): Promise<Board> {
-    const board = this.boardRepository.create(createBoardDto);
-    return await this.boardRepository.save(board);
+  async createBoard(name: string): Promise<Board | null> {
+    console.log("debug 1")
+    // Yeni board'ı oluşturuyoruz
+    const board = this.boardRepository.create({ name });
+    console.log("debug 2")
+    await this.boardRepository.save(board);
+    
+    console.log("debug 3")
+
+    // Default listeleri oluşturuyoruz
+    const lists = ['Backlog', 'To Do', 'In Progress', 'Designed'];
+
+    const listEntities = lists.map((listName) => {
+      const list = this.listRepository.create({
+        name: listName,
+        board: board, // Her listeyi yeni oluşturulan board'a bağlıyoruz
+      });
+      console.log("LIST BURADA", list)
+      return list;
+    });
+
+    
+    console.log("debug 4")
+
+    // Listeleri kaydediyoruz
+    await this.listRepository.save(listEntities);
+
+    
+    console.log("debug 5")
+
+    // Son olarak board'ı döndürüyoruz
+    return this.boardRepository.findOne({
+      where: { id: board.id },
+      relations: ['lists'], // board ile ilişkili listeleri de getiriyoruz
+    });
   }
 
-  async findAll(): Promise<Board[]> {
-    return await this.boardRepository.find({ relations: ['cards'] }); //board ile ilişkili olan kartların da gelemsini sağladık.
-  }
-
-
-  async remove(id: number) {
-    await this.boardRepository.delete(id);
+  async getBoardById(id: string): Promise<Board | null> {
+    return this.boardRepository.findOne({
+      where: { id },
+      relations: ['lists', 'lists.cards'],
+    });
   }
 }

@@ -1,14 +1,17 @@
-import { Card } from 'src/cards/cards.entity';
-import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
+import { List } from 'src/lists/list.entity';
 
 @Entity()
 export class Board {
   @PrimaryGeneratedColumn()
-  id: number;
+  id: string;
+
+  @Column({ default: '' })
+  slug: string; // public id olarak kullanılacak
 
   @Column()
-  title: string;
+  name: string;
 
-  @OneToMany(() => Card, (card) => card.board, { cascade: true })
-  cards: Card[];
+  @OneToMany(() => List, (list) => list.board, { cascade: true })
+  lists: List[];
 }

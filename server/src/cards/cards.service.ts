@@ -1,70 +1,63 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Card } from './cards.entity';
 import { Repository } from 'typeorm';
-import { CreateCardDto } from './create-card.dto';
-import { Board } from 'src/boards/boards.entity';
-import { UpdateCardDto } from './update-card.dto';
+import { Card } from './cards.entity';
+import { List } from 'src/lists/list.entity';
 
 @Injectable()
-export class CardsService {
+export class CardService {
   constructor(
     @InjectRepository(Card)
-    private readonly cardRepo: Repository<Card>,
-
-    @InjectRepository(Board)
-    private readonly boardRepo: Repository<Board>,
+    private readonly cardRepository: Repository<Card>,
+    @InjectRepository(List)
+    private readonly listRepository: Repository<List>,
   ) {}
 
-  async create(createCardDto: CreateCardDto): Promise<Card> {
-    const board = await this.boardRepo.findOne({
-      where: { id: createCardDto.boardId },
-    });
-
-    if (!board) {
-      throw new NotFoundException('Board cannot found');
+  async createCard(
+    listId: string,
+    title: string,
+    description?: string,
+  ): Promise<Card> {
+    const list = await this.listRepository.findOneBy({ id: listId });
+    if (!list) {
+      throw new Error('List not found');
     }
 
-    const card = this.cardRepo.create({
-      title: createCardDto.title,
-      description: createCardDto.description,
-      board: board,
+    const card = this.cardRepository.create({ title, description, list });
+    return this.cardRepository.save(card);
+  }
+
+  async getCardsByList(listId: string): Promise<Card[]> {
+    const list = await this.listRepository.findOne({
+      where: { id: listId },
+      relations: ['cards'],
     });
 
-    return await this.cardRepo.save(card);
-  }
-
-  async findAll() {
-    return await this.cardRepo.find();
-  }
-
-  async findOne(id: number): Promise<Card | null> {
-    return this.cardRepo.findOneBy({ id });
-  }
-
-  async updateCard(id: number, updateCardDto: UpdateCardDto): Promise<Card> {
-    // 1. Kartı doğrudan güncelle (save() yerine update kullanarak)
-    await this.cardRepo.update(id, updateCardDto);
-
-    // 2. Güncellenmiş kartı döndür
-    const updatedCard = await this.cardRepo.findOne({
-      where: { id },
-      relations: ['board'], // İlişkili verileri de getirmek isterseniz
-    });
-
-    if (!updatedCard) {
-      throw new NotFoundException('Card not found after update');
+    if (!list) {
+      throw new Error('List not found');
     }
 
-    return updatedCard;
+    return list.cards;
   }
 
-  async update(id: number, updateCardDto: CreateCardDto) {
-    await this.cardRepo.update(id, updateCardDto);
-    return this.findOne(id);
-  }
+  async moveCard(cardId: string, targetListId: string): Promise<Card> {
+    const card = await this.cardRepository.findOne({
+      where: { id: cardId },
+      relations: ['list'],
+    });
 
-  async remove(id: number) {
-    await this.cardRepo.delete(id);
+    if (!card) {
+      throw new Error('Card not found');
+    }
+
+    const targetList = await this.listRepository.findOneBy({
+      id: targetListId,
+    });
+    if (!targetList) {
+      throw new Error('Target list not found');
+    }
+
+    card.list = targetList;
+    return this.cardRepository.save(card);
   }
 }
