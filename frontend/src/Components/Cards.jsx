@@ -76,10 +76,9 @@ function Cards({ id, title, desc, onUpdate, onDelete }) {
           </div>
         </div>
       ) : (
-        <div className="cards bg-[#00A88B] text-white rounded-[8px] flex flex-col gap-2 p-[8px] mb-[16px]
-         text-balance overflow-y-auto break-words cursor-grab active:cursor-grabbing">
-          <h2>{title}</h2>
-          <h3>{desc}</h3>
+        <div className="bg-[#00A88B] text-white rounded-[8px] p-[8px] mb-[16px] cursor-grab active:cursor-grabbing">
+          <p>{title}</p>
+          <p>{desc}</p>
           <div className="flex gap-1">
             <button onClick={() => setIsEditing(true)}>
               <svg

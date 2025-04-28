@@ -11,7 +11,4 @@ export class CreateCardDto {
 
   @IsNumber()
   boardId: number;
-
-  @IsNumber()
-  position: number;
 }

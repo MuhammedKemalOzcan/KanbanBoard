@@ -18,6 +18,6 @@ export class Card {
   @Column()
   boardId: number;
 
-  @Column({ default: 0 })
+  @Column()
   position: number;
 }
