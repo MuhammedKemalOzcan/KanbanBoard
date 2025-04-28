@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { List } from './list.entity';
@@ -13,26 +13,29 @@ export class ListService {
     private readonly boardRepository: Repository<Board>,
   ) {}
 
-  async createList(boardSlug: string, name: string): Promise<List> {
-    const board = await this.boardRepository.findOneBy({ slug: boardSlug });
-    if (!board) {
-      throw new Error('Board not found');
-    }
-
-    const list = this.listRepository.create({ name, board });
-    return this.listRepository.save(list);
-  }
-
-  async getListsByBoard(boardSlug: string): Promise<List[]> {
+  async getListsByBoard(boardId: string): Promise<List[]> {
     const board = await this.boardRepository.findOne({
-      where: { slug: boardSlug },
+      where: { id: boardId },
       relations: ['lists', 'lists.cards'],
     });
 
     if (!board) {
-      throw new Error('Board not found');
+      throw new NotFoundException(`Board ${boardId} bulunamadı`);
     }
 
     return board.lists;
+  }
+
+  // ID'ye göre bir listeyi getirme
+  async getOneList(id: string): Promise<List> {
+    const list = await this.listRepository.findOne({
+      where: { id: id },
+    });
+
+    if (!list) {
+      throw new NotFoundException(`Liste ${id} bulunamadı`);
+    }
+
+    return list;
   }
 }

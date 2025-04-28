@@ -1,5 +1,14 @@
-import { Controller, Post, Get, Patch, Body, Param } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Patch,
+  Body,
+  Param,
+  Delete,
+} from '@nestjs/common';
 import { CardService } from './cards.service';
+import { Card } from './cards.entity';
 
 @Controller('cards')
 export class CardController {
@@ -25,5 +34,19 @@ export class CardController {
     @Body('targetListId') targetListId: string,
   ) {
     return this.cardService.moveCard(cardId, targetListId);
+  }
+
+  @Patch(':id')
+  async updateCard(
+    @Param('id') id: string,
+    @Body() updateData: Partial<Card>,
+  ): Promise<Card> {
+    return this.cardService.updateCardById(id, updateData);
+  }
+
+  @Delete(':id')
+  async deleteCard(@Param('id') id: string): Promise<{ message: string }> {
+    await this.cardService.deleteCardById(id);
+    return { message: `Kart ID: ${id} başarıyla silindi.` };
   }
 }

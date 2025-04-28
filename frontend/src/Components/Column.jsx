@@ -26,6 +26,7 @@ function Column({ boards, setBoards, cards }) {
   const [error, setError] = useState("");
   const [descError, setDescError] = useState("");
   const [activeId, setActiveId] = useState(null);
+  const [lists, setLists] = useState([]);
 
   const sensors = useSensors(
     useSensor(MouseSensor, {
@@ -48,72 +49,82 @@ function Column({ boards, setBoards, cards }) {
       return;
     }
 
-    // 1. Optimistic update için boards state'ini kopyala
-    const updatedBoards = boards.map((board) => ({
-      ...board,
-      cards: [...board.cards], // Derin kopya
+    // 1. lists'i derin kopyala
+    const updatedLists = boards.lists.map((list) => ({
+      ...list,
+      cards: list.cards.map((card) => ({ ...card })),
     }));
 
-    // 2. Taşınan kartı ve kaynak board'ı bul
-    let sourceBoard, sourceCardIndex, cardToMove;
-    for (const board of updatedBoards) {
-      const foundIndex = board.cards.findIndex((card) => card.id === active.id);
+    // 2. Kaynak liste ve kartı bul
+    let sourceList, sourceCardIndex, cardToMove;
+    for (const list of updatedLists) {
+      const foundIndex = list.cards.findIndex((card) => card.id === active.id);
       if (foundIndex !== -1) {
-        sourceBoard = board;
+        sourceList = list;
         sourceCardIndex = foundIndex;
-        cardToMove = { ...board.cards[foundIndex] }; // Kartın kopyasını al
+        cardToMove = list.cards[foundIndex];
         break;
       }
     }
 
-    if (!sourceBoard || sourceCardIndex === undefined || !cardToMove) {
+    if (!sourceList || sourceCardIndex === undefined || !cardToMove) {
       console.error(`Kaynak kart bulunamadı: ${active.id}`);
       return;
     }
 
-    // 3. Hedef konumu belirle
-    let targetBoardId, newPosition;
+    // 3. Hedef liste ve pozisyonu bul
+    let targetListId, newPosition;
 
     if (over.data.current?.type === "card") {
-      // Kartın üzerine bırakıldı
-      for (const board of updatedBoards) {
-        const overCardIndex = board.cards.findIndex(
+      for (const list of updatedLists) {
+        const overCardIndex = list.cards.findIndex(
           (card) => card.id === over.id
         );
         if (overCardIndex !== -1) {
-          sourceBoard.cards.splice(sourceCardIndex, 1);
+          // Kartı eski yerden çıkar
+          sourceList.cards.splice(sourceCardIndex, 1);
+
+          // Yeni pozisyon hesapla
           newPosition =
             overCardIndex +
-            (sourceBoard.id === board.id && sourceCardIndex < overCardIndex
+            (sourceList.id === list.id && sourceCardIndex < overCardIndex
               ? 0
               : 1);
-          board.cards.splice(newPosition, 0, cardToMove);
-          targetBoardId = board.id;
+
+          list.cards.splice(newPosition, 0, cardToMove);
+
+          targetListId = list.id;
           break;
         }
       }
     } else {
-      // Board'a bırakıldı
-      const targetBoard = updatedBoards.find((board) => board.id === over.id);
-      if (targetBoard) {
-        sourceBoard.cards.splice(sourceCardIndex, 1);
-        newPosition = targetBoard.cards.length;
-        targetBoard.cards.push(cardToMove);
-        targetBoardId = targetBoard.id;
+      // Liste boşluğuna bırakıldı
+      const targetList = updatedLists.find((list) => list.id === over.id);
+      if (targetList) {
+        sourceList.cards.splice(sourceCardIndex, 1);
+        newPosition = targetList.cards.length;
+        targetList.cards.push(cardToMove);
+        targetListId = targetList.id;
       }
     }
 
-    if (targetBoardId === undefined || newPosition === undefined) return;
+    if (targetListId === undefined || newPosition === undefined) {
+      console.error("Hedef liste bulunamadı");
+      return;
+    }
 
-    // 4. Optimistic update (UI'ı anında güncelle)
-    setBoards(updatedBoards);
+    // 4. UI'ı güncelle
+    setBoards((prevBoards) => ({
+      ...prevBoards,
+      lists: updatedLists,
+    }));
 
-    // 5. Backend'e güncelleme gönder
+    // 5. Backend'e bildir
     try {
       const response = await axios.patch(
         `http://localhost:3000/cards/${active.id}`,
         {
-          boardId: targetBoardId,
+          listId: targetListId,
           position: newPosition,
         }
       );
@@ -127,18 +138,7 @@ function Column({ boards, setBoards, cards }) {
     }
   };
 
-  // const fetchBoards = async () => {
-  //   try {
-  //     const response = await axios.get("http://localhost:3000/boards");
-  //     setBoards(response.data);
-  //   } catch (error) {
-  //     console.error("Hata:", error);
-  //   }
-  // };
-
-  console.log(boards);
-
-  const addCard = async () => {
+  const addCard = async (id) => {
     if (!newCardTitle.trim()) {
       setError("Başlık boş bırakılamaz! ");
       return;
@@ -148,19 +148,24 @@ function Column({ boards, setBoards, cards }) {
       return;
     }
     try {
-      const response = await axios.post("http://localhost:3000/cards", {
+      const response = await axios.post(`http://localhost:3000/cards/${id}`, {
         title: newCardTitle,
         description: newCardDesc,
       });
       const newCard = response.data;
-      setBoards((prevBoard) =>
-        prevBoard.map((board) => {
-          if (board.title === "Backlog") {
-            return { ...board, cards: [...board.cards, newCard] };
+      setBoards((prevBoards) => ({
+        ...prevBoards,
+        lists: prevBoards.lists.map((list) => {
+          if (list.id === id) {
+            // id'ye göre ekliyoruz, daha güvenli
+            return {
+              ...list,
+              cards: [...list.cards, newCard],
+            };
           }
-          return board;
-        })
-      );
+          return list;
+        }),
+      }));
     } catch (error) {
       console.error("hata: ", error);
     }
@@ -176,36 +181,39 @@ function Column({ boards, setBoards, cards }) {
     setIsVisible(!isVisible);
   };
 
-  const handleDelete = (boardId, cardId) => {
-    setBoards((prevBoards) =>
-      prevBoards.map((board) => {
-        if (board.id === boardId) {
+  const handleDelete = (listId, cardId) => {
+    setBoards((prevBoards) => ({
+      ...prevBoards,
+      lists: prevBoards.lists.map((list) => {
+        if (list.id === listId) {
           return {
-            ...board,
-            cards: board.cards.filter((card) => card.id !== cardId), // Kartı sil
+            ...list,
+            cards: list.cards.filter((card) => card.id !== cardId),
           };
         }
-        return board;
-      })
-    );
+        return list;
+      }),
+    }));
   };
 
-  const handleEdit = (boardId, cardId, newTitle, newDesc) => {
-    setBoards((prevBoards) =>
-      prevBoards.map((board) => {
-        if (board.id === boardId) {
+  const handleEdit = (listId, cardId, newTitle, newDesc) => {
+    setBoards((prevBoards) => ({
+      ...prevBoards,
+      lists: prevBoards.lists.map((list) => {
+        if (list.id === listId) {
           return {
-            ...board,
-            cards: board.cards.map((card) =>
-              card.id === cardId
-                ? { ...card, title: newTitle, description: newDesc }
-                : card
-            ),
+            ...list,
+            cards: list.cards.map((card) => {
+              if (card.id === cardId) {
+                return { ...card, title: newTitle, description: newDesc };
+              }
+              return card;
+            }),
           };
         }
-        return board;
-      })
-    );
+        return list;
+      }),
+    }));
   };
   return (
     <DndContext
@@ -237,13 +245,12 @@ function Column({ boards, setBoards, cards }) {
                 ))}
               </SortableContext>
               {/* Kart Ekleme */}
-              {console.log(board.name)}
               {board.name === "Backlog" && (
                 <div className="flex flex-col">
                   {/* Form */}
                   {isVisible === true && (
                     <div className="flex flex-col gap-[12px]">
-                      <div className="form flex flex-col justify-center h-auto border-[#00A88B] ">
+                      <div className="form flex flex-col justify-center h-auto border-[#00A88B]">
                         {error && (
                           <div className="text-red-500 text-sm mt-2">
                             {error}
@@ -271,7 +278,7 @@ function Column({ boards, setBoards, cards }) {
                         />
                       </div>
                       <button
-                        onClick={addCard}
+                        onClick={() => addCard(board.id)}
                         className="button flex justify-center border border-[#00A88B] rounded-[10px] bg-[#00A88B] p-0.5 text-white"
                       >
                         <p>Submit</p>
@@ -281,7 +288,7 @@ function Column({ boards, setBoards, cards }) {
                 </div>
               )}
             </div>
-            {board.title === "Backlog" && (
+            {board.name === "Backlog" && (
               <button
                 className={`items-end border border-[#00A88B] rounded-[16px] bg-[#00A88B] p-1 text-white ${
                   isVisible ? "hidden" : "w-full"
@@ -297,7 +304,11 @@ function Column({ boards, setBoards, cards }) {
       <DragOverlay>
         {activeId ? (
           <div className="bg-[#00A88B] text-white rounded-[8px] p-[8px] mb-[16px] shadow-lg">
-            {cards.find((card) => card.id === activeId)?.title}
+            {
+              boards.lists
+                ?.flatMap((list) => list.cards) // Tüm kartları düzleştir
+                .find((card) => card.id === activeId)?.title
+            }
           </div>
         ) : null}
       </DragOverlay>

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Card } from './cards.entity';
@@ -58,6 +58,31 @@ export class CardService {
     }
 
     card.list = targetList;
+    return this.cardRepository.save(card);
+  }
+
+  async deleteCardById(id: string): Promise<void> {
+    const card = await this.cardRepository.findOne({
+      where: { id: id },
+    });
+
+    if (!card) {
+      throw new NotFoundException(`Kart ID: ${id} bulunamadı`);
+    }
+
+    await this.cardRepository.remove(card);
+  }
+
+  async updateCardById(id: string, updateData: Partial<Card>): Promise<Card> {
+    const card = await this.cardRepository.findOne({ where: { id } });
+
+    if (!card) {
+      throw new NotFoundException(`Kart ID: ${id} bulunamadı`);
+    }
+
+    // Verilen updateData ile kartı güncelliyoruz
+    Object.assign(card, updateData);
+
     return this.cardRepository.save(card);
   }
 }
