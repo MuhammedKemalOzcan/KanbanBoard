@@ -28,6 +28,7 @@ export class CardService {
   }
 
   async getCardsByList(listId: string): Promise<Card[]> {
+    //belli bir listeye ait tüm kartları getirir.
     const list = await this.listRepository.findOne({
       where: { id: listId },
       relations: ['cards'],
@@ -57,6 +58,7 @@ export class CardService {
       throw new Error('Target list not found');
     }
 
+    //kartın list ilişkisi değiştirilir.
     card.list = targetList;
     return this.cardRepository.save(card);
   }

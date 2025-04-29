@@ -4,9 +4,6 @@ import {
   MouseSensor,
   TouchSensor,
   closestCenter,
-  closestCorners,
-  pointerWithin,
-  useDroppable,
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
@@ -14,27 +11,26 @@ import {
   SortableContext,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import Cards from "./Cards";
 import axios from "axios";
 import DroppableBoard from "./DroppableBoard";
 
-function Column({ boards, setBoards, cards }) {
+function Column({ boards, setBoards }) {
   const [newCardTitle, setNewCardTitle] = useState("");
   const [newCardDesc, setNewCardDesc] = useState("");
   const [isVisible, setIsVisible] = useState(false);
   const [error, setError] = useState("");
   const [descError, setDescError] = useState("");
   const [activeId, setActiveId] = useState(null);
-  const [lists, setLists] = useState([]);
 
   const sensors = useSensors(
     useSensor(MouseSensor, {
       activationConstraint: {
-        distance: 5,
+        distance: 5, //hareket başlaması için 5px sürükleme gerekli.
       },
     }),
-    useSensor(TouchSensor)
+    useSensor(TouchSensor) // dokunmatik ekranlar için.
   );
 
   const handleDragStart = (event) => {
@@ -67,14 +63,16 @@ function Column({ boards, setBoards, cards }) {
       }
     }
 
+    // Eğer kart kaynak listede bulunamadıysa hata ver
     if (!sourceList || sourceCardIndex === undefined || !cardToMove) {
       console.error(`Kaynak kart bulunamadı: ${active.id}`);
       return;
     }
 
-    // 3. Hedef liste ve pozisyonu bul
+    //3. Hedef liste ve pozisyonu bul
     let targetListId, newPosition;
 
+    //bırakılan yer başka bir kart mı diye kontrol edilioyr.
     if (over.data.current?.type === "card") {
       for (const list of updatedLists) {
         const overCardIndex = list.cards.findIndex(
@@ -91,6 +89,7 @@ function Column({ boards, setBoards, cards }) {
               ? 0
               : 1);
 
+          //Yeni konuma kartı ekle.
           list.cards.splice(newPosition, 0, cardToMove);
 
           targetListId = list.id;
@@ -101,9 +100,9 @@ function Column({ boards, setBoards, cards }) {
       // Liste boşluğuna bırakıldı
       const targetList = updatedLists.find((list) => list.id === over.id);
       if (targetList) {
-        sourceList.cards.splice(sourceCardIndex, 1);
+        sourceList.cards.splice(sourceCardIndex, 1); //kaynak listeden kartı çıkar
         newPosition = targetList.cards.length;
-        targetList.cards.push(cardToMove);
+        targetList.cards.push(cardToMove); //kartı listenin sonuna ekle
         targetListId = targetList.id;
       }
     }
@@ -119,13 +118,14 @@ function Column({ boards, setBoards, cards }) {
       lists: updatedLists,
     }));
 
+    console.log(boards);
+
     // 5. Backend'e bildir
     try {
       const response = await axios.patch(
-        `http://localhost:3000/cards/${active.id}`,
+        `http://localhost:3000/cards/move/${active.id}`,
         {
-          listId: targetListId,
-          position: newPosition,
+          targetListId: targetListId,
         }
       );
 
