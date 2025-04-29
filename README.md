@@ -1,12 +1,61 @@
-# React + Vite
+# Kanban Board Uygulaması
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Bu proje, React + Vite frontend ve NestJS backend kullanılarak geliştirilen bir Kanban board uygulamasıdır. Kullanıcılar, farklı board'lar oluşturarak bu board'lar üzerinde kartlar taşıyabilir, düzenleyebilir ve yönetebilir.
 
-Currently, two official plugins are available:
+## Kullanılan Teknolojiler
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+### Backend
+- [NestJS](https://nestjs.com/)
+- [MySQL](https://www.mysql.com/)
+- [TypeORM](https://typeorm.io/)
+- [Docker](https://www.docker.com/)
 
-## Expanding the ESLint configuration
+### Frontend
+- [React](https://reactjs.org/)
+- [Vite](https://vitejs.dev/)
+- [@dnd-kit/core](https://dndkit.com/) – Sürükle bırak desteği için
+- [Axios](https://axios-http.com/) – API istekleri için
 
-If you are developing a production application, we recommend using TypeScript and enable type-aware lint rules. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## Backend Kurulum
+
+Depoyu klonlayın:
+```bash
+git clone https://github.com/MuhammedKemalOzcan/KanbanBoard.git
+cd kanban/backend
+
+## .env dosyası
+DATABASE_HOST=localhost
+DATABASE_PORT=3306
+DATABASE_USERNAME=kemal
+DATABASE_PASSWORD=kemal123
+DATABASE_NAME=kanban_db
+
+### Docker ile çalıştırın:
+
+docker-compose up --build
+
+## Frontend Kurulum
+cd ../Frontend
+npm install
+npm run dev
+
+## API Dökümantasyonu
+
+POST /boards
+Content-Type: application/json
+{
+  "name": "Yeni Proje"
+}
+
+GET /boards
+
+GET /boards/:id
+
+
+
+
+
+
+
+
+

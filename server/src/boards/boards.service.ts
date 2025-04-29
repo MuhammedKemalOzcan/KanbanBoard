@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Board } from './boards.entity';
@@ -14,13 +14,9 @@ export class BoardService {
   ) {}
 
   async createBoard(name: string): Promise<Board | null> {
-    console.log("debug 1")
     // Yeni board'ı oluşturuyoruz
     const board = this.boardRepository.create({ name });
-    console.log("debug 2")
     await this.boardRepository.save(board);
-    
-    console.log("debug 3")
 
     // Default listeleri oluşturuyoruz
     const lists = ['Backlog', 'To Do', 'In Progress', 'Designed'];
@@ -30,18 +26,11 @@ export class BoardService {
         name: listName,
         board: board, // Her listeyi yeni oluşturulan board'a bağlıyoruz
       });
-      console.log("LIST BURADA", list)
       return list;
     });
 
-    
-    console.log("debug 4")
-
     // Listeleri kaydediyoruz
     await this.listRepository.save(listEntities);
-
-    
-    console.log("debug 5")
 
     // Son olarak board'ı döndürüyoruz
     return this.boardRepository.findOne({
@@ -55,5 +44,17 @@ export class BoardService {
       where: { id },
       relations: ['lists', 'lists.cards'],
     });
+  }
+
+  async getAllBoards(): Promise<Board[]> {
+    const boards = await this.boardRepository.find({
+      relations: ['lists', 'lists.cards'], // Board -> List -> Card ilişkilerini getiriyoruz
+    });
+
+    if (!boards || boards.length === 0) {
+      throw new NotFoundException('Hiç board bulunamadı.');
+    }
+
+    return boards;
   }
 }

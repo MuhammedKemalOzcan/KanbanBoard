@@ -10,7 +10,7 @@ function App() {
       <div className="flex flex-col gap-4">
         <Routes>
           <Route path="/" element={<CreateBoard />} />
-          <Route path="/:id" element={<Board />} />
+          <Route path="board/:id" element={<Board />} />
         </Routes>
       </div>
     </Router>
